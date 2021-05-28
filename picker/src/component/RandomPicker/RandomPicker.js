@@ -10,43 +10,29 @@ import {
 } from "react-bootstrap";
 import AsyncSelect from "react-select/async";
 import "./RandomPicker.css";
+import axios from "axios";
 const _ = require("lodash");
-
-const dummyData = [
-  {
-    name: "兰州拉面",
-    tag: ["面"],
-    url: "https://www.39miles.com/p/08466044",
-  },
-  {
-    name: "Chick n Tea",
-    tag: ["炸鸡", "快餐"],
-    url: "https://www.39miles.com/p/08466044",
-  },
-  {
-    name: "麦麦",
-    tag: ["快餐"],
-    url: "https://www.39miles.com/p/08466044",
-  },
-  {
-    name: "麻辣香锅",
-    tag: ["辣"],
-    url: "https://www.39miles.com/p/08466044",
-  },
-];
 
 const RandomPicker = () => {
   const [restaurant, setRestaurant] = useState();
-  const [resList, setResList] = useState(dummyData);
+  const [resList, setResList] = useState([]);
   const [filterOption, setFilterOption] = useState([]);
   const [name, setName] = useState();
   const [url, setUrl] = useState();
   const [feature, setFeature] = useState();
   const [featureList, setFeatureList] = useState([]);
+  const [restaurantList, setRestaurantList] = useState([]);
+
+  useEffect(() => {
+    axios.get("http://18.144.42.213:3001/list").then((res) => {
+      setRestaurantList(res.data);
+      setResList(res.data);
+    });
+  }, []);
 
   useEffect(() => {
     let temp = [];
-    for (const d of dummyData) {
+    for (const d of restaurantList) {
       temp = _.union(temp, d.tag);
     }
     let result = [];
@@ -55,7 +41,7 @@ const RandomPicker = () => {
     }
 
     setFilterOption(result);
-  }, []);
+  }, [restaurantList]);
 
   const getRandomInt = (max) => {
     return Math.floor(Math.random() * max);
@@ -68,9 +54,9 @@ const RandomPicker = () => {
 
   const filterOnChangeHandler = (e) => {
     if (e.length === 0) {
-      setResList(dummyData);
+      setResList(restaurantList);
     } else {
-      let temp = dummyData.filter((r) => {
+      let temp = restaurantList.filter((r) => {
         let condition = true;
         for (const f of e) {
           if (!r.tag.includes(f.value)) {
@@ -104,7 +90,7 @@ const RandomPicker = () => {
     let temp = [...featureList];
     console.log(temp);
     temp.push(feature);
-    setFeature("")
+    setFeature("");
     setFeatureList(temp);
   };
 
@@ -116,10 +102,15 @@ const RandomPicker = () => {
       url: url,
     };
 
-    let temp = [...dummyData];
-    temp.push(rest);
-    console.log(temp);
-    setResList(temp);
+    axios
+      .post("http://18.144.42.213:3001/add", rest)
+      .then((res) => {
+        console.log(res);
+        let temp = [...restaurantList];
+        temp.push(rest);
+        setResList(temp);
+      })
+      .catch((error) => console.log(error));
   };
 
   return (
@@ -200,7 +191,6 @@ const RandomPicker = () => {
                   aria-label="Restaurant feature"
                   value={feature}
                   onChange={(e) => setFeature(e.target.value)}
-                  required
                 />
                 <InputGroup.Append>
                   <Button
@@ -211,11 +201,16 @@ const RandomPicker = () => {
                   </Button>
                 </InputGroup.Append>
               </InputGroup>
-              {featureList.length > 0 ? <ul>{featureList.map(f => <li>{f}</li>)}</ul> : ""}
-              <Button
-                variant="primary"
-                type="submit"
-              >
+              {featureList.length > 0 ? (
+                <ul>
+                  {featureList.map((f) => (
+                    <li>{f}</li>
+                  ))}
+                </ul>
+              ) : (
+                ""
+              )}
+              <Button variant="primary" type="submit">
                 Add Restaurant
               </Button>
             </Form>
